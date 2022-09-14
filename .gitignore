@@ -1,2 +1,16 @@
 *.class
+*.classpath
+*.project
+*.sbt
+*.sbts
 *.log
+*.zip
+
+.idea
+*/.settings
+*/lib
+*/lib_managed
+*/project
+*/recitations
+*/submission
+*/target
