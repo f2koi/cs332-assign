@@ -1,5 +1,6 @@
 package patmat
 
+import com.sun.javaws.exceptions.InvalidArgumentException
 import common._
 
 import scala.annotation.tailrec
@@ -116,7 +117,7 @@ object Huffman {
       case Nil | List(_)
         => trees
       case tree1::tree2::tail
-        => makeCodeTree(tree1, tree2) :: tail
+        => (makeCodeTree(tree1, tree2) :: tail).sortBy(weight)
     }
 
   /**
@@ -138,7 +139,7 @@ object Huffman {
    */
   @tailrec
   def until(p: List[CodeTree] => Boolean, f: List[CodeTree] => List[CodeTree])(trees: List[CodeTree]): List[CodeTree] =
-    if (p(trees)) until(p, f)(f(trees))
+    if (!p(trees)) until(p, f)(f(trees))
     else trees
 
   /**
@@ -159,7 +160,29 @@ object Huffman {
    * This function decodes the bit sequence `bits` using the code tree `tree` and returns
    * the resulting list of characters.
    */
-  def decode(tree: CodeTree, bits: List[Bit]): List[Char] = ???
+  def decode(tree: CodeTree, bits: List[Bit]): List[Char] = {
+    @tailrec
+    def decode_char(tree: CodeTree, bits: List[Bit]): (Char, List[Bit]) =
+      tree match {
+        case Fork(left, right, _, _) => {
+          if (bits.head == 0) decode_char(left, bits.tail)
+          else decode_char(right, bits.tail)
+        }
+        case Leaf(char, _) => (char, bits)
+      }
+
+    @tailrec
+    def decode_tailrec(tree: CodeTree, bits: List[Bit], acc: List[Char]): List[Char] = {
+      if (bits.isEmpty) acc.reverse
+      else {
+        decode_char(tree, bits) match {
+          case (char, bits) => decode_tailrec(tree, bits, char::acc)
+        }
+      }
+    }
+
+  decode_tailrec(tree, bits, List())
+  }
 
   /**
    * A Huffman coding tree for the French language.
@@ -177,7 +200,7 @@ object Huffman {
   /**
    * Write a function that returns the decoded secret
    */
-  def decodedSecret: List[Char] = ???
+  def decodedSecret: List[Char] = decode(frenchCode, secret)
 
 
 
@@ -187,7 +210,23 @@ object Huffman {
    * This function encodes `text` using the code tree `tree`
    * into a sequence of bits.
    */
-  def encode(tree: CodeTree)(text: List[Char]): List[Bit] = ???
+  def encode(tree: CodeTree)(text: List[Char]): List[Bit] = {
+    def encode_char(tree: CodeTree, char: Char, acc: List[Bit]): Option[List[Bit]] =
+      tree match {
+        case Fork(left, right, _, _) =>
+          encode_char(left, char, 0::acc).orElse(encode_char(right, char, 1::acc))
+        case Leaf(char_at_leaf, _) =>
+          if (char_at_leaf == char) Some(acc.reverse)
+          else None
+      }
+
+    @tailrec
+    def encode_tailrec(tree: CodeTree, text: List[Char], acc: List[Bit]): Option[List[Bit]] =
+      if (text.isEmpty) Some(acc)
+      else encode_tailrec(tree, text.tail, acc ::: encode_char(tree, text.head, List()).get)
+
+    encode_tailrec(tree, text, List()).get
+  }
 
 
   // Part 4b: Encoding using code table
