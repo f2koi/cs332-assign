@@ -47,7 +47,7 @@ class HuffmanSuite extends FunSuite {
     new TestTrees {
       val string = "decode and encode a text should be identity. makeOrderedLeafList for some frequency table."
       val tree = createCodeTree(string.toList)
-      assert(decode(tree, encode(tree)(string.toList)) === string.toList)
+      assert(decode(tree, quickEncode(tree)(string.toList)) === string.toList)
     }
   }
 }
